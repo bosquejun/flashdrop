@@ -35,7 +35,7 @@ services:
         protocol: tcp
         mode: ingress   # default, enables Swarm load-balancing
     deploy:
-      replicas: 3
+      replicas: 1
       restart_policy:
         condition: on-failure
       update_config:
