@@ -1,0 +1,338 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "mappings": [] },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "count(count by (instance) (http_requests_total{service=\"api\", instance=~\"$instance\"}))", "refId": "A" }],
+      "title": "Instances up",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "mappings": [], "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))", "refId": "A" }],
+      "title": "Total request rate",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "max": 100, "min": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] }, "unit": "percent" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\", status_code=~\"5..\"}[5m])) / sum(rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m])) * 100", "refId": "A" }],
+      "title": "Error rate (5xx) %",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "mappings": [], "unit": "ms" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m])) by (le)) * 1000", "refId": "A" }],
+      "title": "p95 latency (ms)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "mappings": [], "unit": "ms" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m])) by (le)) * 1000", "refId": "A" }],
+      "title": "p99 latency (ms)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "mappings": [], "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(increase(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[1h]))", "refId": "A" }],
+      "title": "Requests (1h)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "panels": [],
+      "title": "RED (Rate, Errors, Duration)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 6 },
+      "id": 7,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (instance) (rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))", "legendFormat": "{{instance}}", "refId": "A" }],
+      "title": "Request rate by instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "reqps" }, "overrides": [{ "matcher": { "id": "byRegexp", "options": "5.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }, { "matcher": { "id": "byRegexp", "options": "4.*" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 6 },
+      "id": 8,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (instance, status_code) (rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\", status_code=~\"5..\"}[5m]))", "legendFormat": "{{instance}} {{status_code}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (instance, status_code) (rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\", status_code=~\"4..\"}[5m]))", "legendFormat": "{{instance}} {{status_code}}", "refId": "B" }
+      ],
+      "title": "Error rate (4xx, 5xx) by instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
+      "id": 9,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.50, sum by (instance, le) (rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))) * 1000", "legendFormat": "p50 {{instance}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (instance, le) (rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))) * 1000", "legendFormat": "p95 {{instance}}", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.99, sum by (instance, le) (rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))) * 1000", "legendFormat": "p99 {{instance}}", "refId": "C" }
+      ],
+      "title": "Latency (p50, p95, p99) by instance",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "panels": [],
+      "title": "HTTP breakdown",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "mappings": [], "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "id": 10,
+      "options": { "legend": { "displayMode": "list", "placement": "right", "showLegend": true }, "pieType": "pie" },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (status_code) (rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))", "legendFormat": "{{status_code}}", "refId": "A" }],
+      "title": "Status code distribution",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "mappings": [], "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "id": 11,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (method) (rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))", "legendFormat": "{{method}}", "refId": "A" }],
+      "title": "Request rate by method",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "align": "auto", "displayMode": "auto" }, "mappings": [], "unit": "reqps" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Req/s" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "id": 12,
+      "options": { "showHeader": true, "cellHeight": "sm", "footer": { "show": false, "reducer": ["sum"], "countRows": false }, "sortBy": [{ "displayName": "Value", "desc": true }] },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "topk(10, sum by (route) (rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m])))", "format": "table", "instant": true, "refId": "A" }],
+      "title": "Top routes by request rate",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "align": "auto", "displayMode": "auto" }, "mappings": [], "unit": "ms" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "id": 13,
+      "options": { "showHeader": true, "cellHeight": "sm", "footer": { "show": false }, "sortBy": [{ "displayName": "p99", "desc": true }] },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.99, sum by (route, le) (rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))) * 1000", "format": "table", "instant": true, "legendFormat": "p99 {{route}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.50, sum by (route, le) (rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))) * 1000", "format": "table", "instant": true, "legendFormat": "p50 {{route}}", "refId": "B" }
+      ],
+      "title": "Latency by route (p50, p99)",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "id": 103,
+      "panels": [],
+      "title": "Latency percentiles",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "id": 14,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.50, sum by (instance, le) (rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))) * 1000", "legendFormat": "p50 {{instance}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.90, sum by (instance, le) (rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))) * 1000", "legendFormat": "p90 {{instance}}", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (instance, le) (rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))) * 1000", "legendFormat": "p95 {{instance}}", "refId": "C" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.99, sum by (instance, le) (rate(http_request_duration_seconds_bucket{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))) * 1000", "legendFormat": "p99 {{instance}}", "refId": "D" }
+      ],
+      "title": "Request duration (p50, p90, p95, p99) by instance",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "id": 104,
+      "panels": [],
+      "title": "Node.js runtime",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 41 },
+      "id": 15,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "nodejs_heap_size_used_bytes{service=\"api\", instance=~\"$instance\"}", "legendFormat": "heap used {{instance}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "nodejs_heap_size_total_bytes{service=\"api\", instance=~\"$instance\"}", "legendFormat": "heap total {{instance}}", "refId": "B" }
+      ],
+      "title": "Heap memory by instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 41 },
+      "id": 16,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "nodejs_eventloop_lag_seconds{service=\"api\", instance=~\"$instance\"}", "legendFormat": "{{instance}}", "refId": "A" }
+      ],
+      "title": "Event loop lag by instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 41 },
+      "id": 17,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_nodejs_active_handles_total{service=\"api\", instance=~\"$instance\"}", "legendFormat": "handles {{instance}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_nodejs_active_requests_total{service=\"api\", instance=~\"$instance\"}", "legendFormat": "requests {{instance}}", "refId": "B" }
+      ],
+      "title": "Active handles & requests",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 49 },
+      "id": 18,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_process_resident_memory_bytes{service=\"api\", instance=~\"$instance\"}", "legendFormat": "RSS {{instance}}", "refId": "A" }],
+      "title": "RSS memory by instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 49 },
+      "id": 19,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(node_nodejs_gc_duration_seconds_sum{service=\"api\", instance=~\"$instance\"}[5m])", "legendFormat": "GC {{instance}}", "refId": "A" }],
+      "title": "GC duration rate by instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 57 },
+      "id": 20,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (instance, route) (rate(http_requests_total{service=\"api\", instance=~\"$instance\", route!=\"/metrics\"}[5m]))", "legendFormat": "{{instance}} - {{route}}", "refId": "A" }],
+      "title": "Request rate by instance and route",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } }, "mappings": [], "unit": "percentunit" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 57 },
+      "id": 21,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true } },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(node_process_cpu_user_seconds_total{service=\"api\", instance=~\"$instance\"}[5m])) + sum(rate(node_process_cpu_system_seconds_total{service=\"api\", instance=~\"$instance\"}[5m]))", "legendFormat": "CPU", "refId": "A" }],
+      "title": "CPU usage (all instances)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["flashdrop", "api"],
+  "templating": {
+    "list": [
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(http_requests_total{service=\"api\"}, instance)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "hide": 0,
+        "label": "Instance"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Flashdrop API instances",
+  "uid": "flashdrop-api",
+  "version": 2,
+  "weekStart": ""
+}

@@ -1,0 +1,43 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup && tsc-alias -p tsconfig.json",
+    "start": "node dist/index.js",
+    "check-types": "tsc --noEmit",
+    "seed": "tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "@repo/logger": "workspace:*",
+    "@repo/schema": "workspace:*",
+    "@repo/utils": "workspace:*",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "ioredis": "^5.6.1",
+    "mongodb": "^7.1.0",
+    "object-hash": "^3.0.0",
+    "pino-http": "^10.4.0",
+    "prom-client": "^15.1.3",
+    "zod": "^3.25.3"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.2",
+    "@types/express-serve-static-core": "^5.1.1",
+    "@types/node": "^22.15.3",
+    "@types/object-hash": "^3.0.6",
+    "esbuild-plugin-path-alias": "^1.0.7",
+    "tsc-alias": "^1.8.16",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.2"
+  }
+}

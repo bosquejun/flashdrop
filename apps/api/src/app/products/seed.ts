@@ -1,0 +1,65 @@
+import getRedis from "@/lib/redis.js";
+import { createLogger } from "@repo/logger";
+import type { Product } from "@repo/schema";
+import { ObjectId } from "mongodb";
+import { productsCollection } from "./repository.js";
+import { getProductBuyersKey, getProductStockKey } from "./utils.js";
+
+const logger = createLogger("products-seed");
+
+type ProductSeed = Omit<Product, "_id" | "createdAt">;
+
+const dateNow = new Date();
+const startDate = new Date(dateNow.setMinutes(dateNow.getMinutes() + 1));
+const endDate = new Date(dateNow.setDate(dateNow.getDate() + 1));
+
+export const PRODUCTS: ProductSeed[] = [
+  {
+    sku: "IPHONE-17-PRO-MAX-256-BLK",
+    name: "iPhone 17 Pro Max",
+    description:
+      "The all-new iPhone 17 Pro Max with A19 Pro chip, 48MP fusion camera, and titanium design. 256GB — Black Titanium.",
+    price: 119900,
+    availableStock: 10000,
+    totalStock: 10000,
+    currency: "USD",
+    imageUrl:
+      "https://citymagazine.b-cdn.net/wp-content/uploads/2025/09/iPhone-17-Pro-Max-2025-02-1400x788.webp",
+    flashSale: {
+      startDate: startDate,
+      endDate: endDate,
+      price: 119900 * 0.5, // 50% off
+      stock: 10000 * 0.5, // 50% of total stock
+      limit: {
+        perUser: 1,
+      },
+    },
+  },
+];
+
+export async function seedProducts() {
+  const products = await productsCollection();
+
+  logger.debug("Flushing products...");
+  await products.deleteMany({});
+  logger.debug("Flushed products");
+
+  logger.debug("Seeding products...");
+  const result = await products.insertMany(
+    PRODUCTS.map((p) => ({
+      ...p,
+      _id: new ObjectId().toString(),
+      createdAt: new Date(),
+    }))
+  );
+
+  // Prepare Redis for products
+  const redis = getRedis();
+  for (const product of PRODUCTS) {
+    await redis.set(getProductStockKey(product.sku), product.availableStock);
+    await redis.hset(getProductBuyersKey(product.sku), product.sku, 0);
+  }
+
+  logger.debug({ insertedCount: result.insertedCount }, "Products seeded");
+  logger.debug("Redis prepared for products");
+}

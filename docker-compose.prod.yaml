@@ -1,0 +1,76 @@
+name: flashdrop-prod
+
+services:
+  mongodb:
+    image: mongo:7
+    # In prod, we typically don't expose DB ports to the public internet
+    # ports: ["27017:27017"] 
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      retries: 5
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+    restart: always
+
+  api:
+    image: flashdrop/api:latest
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runner # <--- This pulls only the dist/ folder and prod deps
+    restart: always
+    ulimits:
+      nofile:
+        soft: 200000
+        hard: 200000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # Use the service names defined in this file as hostnames
+      DATABASE_URL: mongodb://mongodb:27017/flashdrop
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGIN: "https://yourdomain.com" # Update to your actual domain
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX: 10000
+      LOG_LEVEL: info
+      WORKERS: 1
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    restart: always
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports:
+      - "4001:4001"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD} # Set this in your .env
+      GF_SERVER_HTTP_PORT: 4001
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: always
+
+volumes:
+  mongo_data:
+  prometheus_data:
+  grafana_data:

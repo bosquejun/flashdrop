@@ -4,12 +4,21 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "lint": "biome lint .",
+    "bench:flash-sale": "node --import tsx/esm scripts/autocannon/get-flash-sale.mjs",
+    "bench:create-order": "node --import tsx/esm scripts/autocannon/create-order.mjs",
+    "lint:fix": "biome lint . --write",
+    "format": "biome format . --write",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "check:fix": "biome check . --write",
+    "check-types": "turbo run check-types",
+    "seed": "turbo run seed --filter=api"
   },
   "devDependencies": {
-    "prettier": "^3.7.4",
+    "@biomejs/biome": "1.9.4",
+    "autocannon": "^8.0.0",
+    "tsx": "^4.21.0",
     "turbo": "^2.8.10",
     "typescript": "5.9.2"
   },
