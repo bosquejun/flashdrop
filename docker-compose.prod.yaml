@@ -3,8 +3,6 @@ name: flashdrop-prod
 services:
   mongodb:
     image: mongo:7
-    # In prod, we typically don't expose DB ports to the public internet
-    # ports: ["27017:27017"] 
     volumes:
       - mongo_data:/data/db
     healthcheck:

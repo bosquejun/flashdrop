@@ -28,6 +28,22 @@ export function getProductStockKey(sku: string) {
 }
 
 /**
+ * Redis key for product total stock (set at seed for metrics; source of truth for total).
+ * @param sku {string} - The SKU of the product
+ * @returns {string} The Redis key
+ */
+export function getProductTotalKey(sku: string) {
+  return `product:{${sku}}:total`;
+}
+
+/**
+ * Cache key for aggregated sale status (ProductFlashSaleInfo-like). Short TTL for freshness.
+ */
+export function getSaleStatusKey(sku: string): string {
+  return `product:${sku}:sale-status`;
+}
+
+/**
  * Get the cached product buyers key, it will be used to identify the cached product buyers by the SKU.
  * @param sku {string} - The SKU of the product to get
  * @returns {string} The cached product buyers key

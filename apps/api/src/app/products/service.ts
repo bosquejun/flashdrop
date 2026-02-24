@@ -1,11 +1,28 @@
 import { AppError } from "@/api/http/v1/middleware/errorHandler.js";
-import { TTL_ONE_HOUR_MS } from "@/config/constants.js";
+import { TTL_ONE_HOUR_MS, TTL_SALE_STATUS_MS } from "@/config/constants.js";
 import getRedis from "@/lib/redis.js";
 import { createLogger } from "@repo/logger";
 import { type Product, productSchema } from "@repo/schema";
 import { z } from "zod";
 import { findProduct, listProducts, productsCollection } from "./repository.js";
-import { getProductKey, getProductStockKey, getProductsListKey } from "./utils.js";
+import { getProductKey, getProductStockKey, getProductsListKey, getSaleStatusKey } from "./utils.js";
+
+/** ProductFlashSaleInfo-shaped DTO for GET sale-status (dates as ISO strings for JSON). */
+export const saleStatusResponseSchema = z.object({
+  status: z.enum(["upcoming", "active", "ended"]),
+  startDate: z.string(),
+  endDate: z.string(),
+  availableStock: z.number().int().nonnegative(),
+  totalStock: z.number().int().nonnegative(),
+  limitPerUser: z.number().int().nonnegative(),
+  price: z.number().nonnegative(),
+  currency: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  imageUrl: z.string().nullable(),
+  sku: z.string().min(1),
+});
+export type SaleStatusResponse = z.infer<typeof saleStatusResponseSchema>;
 
 const logger = createLogger("products-service");
 
@@ -113,6 +130,59 @@ export async function getProductStock(
     availableStock: Number.isNaN(availableStock) ? product.availableStock : availableStock,
     totalStock,
   };
+}
+
+/**
+ * Get sale status for a product (ProductFlashSaleInfo-like). Cached in Redis with short TTL.
+ * @param sku - Product SKU
+ * @returns Sale status DTO or null if product not found
+ */
+export async function getProductSaleStatus(sku: string): Promise<SaleStatusResponse | null> {
+  const redis = getRedis();
+  const cacheKey = getSaleStatusKey(sku);
+  const cached = await redis.get(cacheKey);
+  if (cached) {
+    logger.debug({ sku }, "Sale status from cache");
+    return saleStatusResponseSchema.parse(JSON.parse(cached));
+  }
+
+  const product = await getProduct(sku);
+  if (!product) return null;
+
+  const stock = await getProductStock(sku);
+  if (!stock) return null;
+
+  const now = Date.now();
+  const startDate = product.startDate instanceof Date ? product.startDate : new Date(product.startDate);
+  const endDate = product.endDate instanceof Date ? product.endDate : new Date(product.endDate);
+  const start = startDate.getTime();
+  const end = endDate.getTime();
+
+  let status: "upcoming" | "active" | "ended" = "active";
+  if (stock.availableStock === 0 || end < now) {
+    status = "ended";
+  } else if (start > now) {
+    status = "upcoming";
+  }
+
+  const dto: SaleStatusResponse = {
+    status,
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    availableStock: stock.availableStock,
+    totalStock: stock.totalStock,
+    limitPerUser: product.limit?.perUser ?? 1,
+    price: product.price,
+    currency: product.currency,
+    name: product.name,
+    description: product.description ?? null,
+    imageUrl: product.imageUrl ?? null,
+    sku: product.sku,
+  };
+
+  await redis.set(cacheKey, JSON.stringify(dto), "PX", TTL_SALE_STATUS_MS);
+  logger.debug({ sku, status }, "Sale status computed and cached");
+  return dto;
 }
 
 export async function decrementProductStock(sku: string, quantityToDecrement: number) {

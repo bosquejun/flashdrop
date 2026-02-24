@@ -7,6 +7,10 @@ import { createLogger } from "@repo/logger";
 import { type CreateOrderRequest, type Order, orderSchema } from "@repo/schema";
 import { loadLuaScript } from "@repo/utils";
 import objectHash from "object-hash";
+import {
+  ordersRejectedLimitExceededTotal,
+  ordersRejectedOutOfStockTotal,
+} from "@/lib/metrics/index.js";
 import { getAndVerifyProductOnFlashSale } from "../products/service.js";
 import { getProductBuyersKey, getProductStockKey } from "../products/utils.js";
 import { findOrder, insertOrder, listOrders } from "./repository.js";
@@ -174,7 +178,9 @@ export async function createOrder(userId: string, request: CreateOrderRequest) {
       String(perUserLimit)
     )) as number;
 
-    // STEP 4: verify if the order was successful
+    // STEP 4: record reject metrics (from Redis Lua result) then verify
+    if (result === -2) ordersRejectedOutOfStockTotal.labels(product.sku).inc();
+    if (result === -1) ordersRejectedLimitExceededTotal.labels(product.sku).inc();
     verifyCreateOrderResult(result);
 
     // At this point, the user made the order has secured the product and the stock has been decremented.

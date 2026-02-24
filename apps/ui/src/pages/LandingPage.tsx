@@ -33,7 +33,7 @@ const LandingPage: React.FC = () => {
                 Real-time deals on high-demand tech. Once the timer hits zero or stock runs out, the
                 price returns to normal.
               </p>
-              <button className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest border-b-2 border-zinc-950 pb-1 italic">
+              <button type="button" className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest border-b-2 border-zinc-950 pb-1 italic">
                 Filter Deals
               </button>
             </div>
@@ -45,7 +45,7 @@ const LandingPage: React.FC = () => {
             {saleData?.sale && (
               <ProductCard
                 product={{
-                  id: saleData.sale._id,
+                  id: saleData.sale._id ?? saleData.sale.sku,
                   sku: saleData.sale.sku,
                   name: saleData.sale.snapshot.name,
                   description: saleData.sale.snapshot.description,
@@ -78,7 +78,7 @@ const LandingPage: React.FC = () => {
                 Join our premium membership for early access to the biggest tech releases and
                 member-only pricing.
               </p>
-              <button className="px-8 py-4 bg-white text-zinc-900 rounded-xl font-bold text-xs uppercase tracking-widest italic hover:bg-yellow-400 transition-colors">
+              <button type="button" className="px-8 py-4 bg-white text-zinc-900 rounded-xl font-bold text-xs uppercase tracking-widest italic hover:bg-yellow-400 transition-colors">
                 Join Member Program
               </button>
             </div>
@@ -112,7 +112,7 @@ const LandingPage: React.FC = () => {
               Catalog.
             </h2>
             <a
-              href="#"
+              href="/"
               className="text-[10px] font-bold text-zinc-400 hover:text-zinc-900 uppercase tracking-widest italic border-b border-zinc-200 pb-1"
             >
               Browse All
@@ -161,7 +161,7 @@ const LandingPage: React.FC = () => {
                 placeholder="Your Email Address"
                 className="w-full bg-white border-none rounded-xl px-6 py-4 text-black font-bold focus:ring-4 focus:ring-black/5"
               />
-              <button className="bg-black text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest italic hover:scale-[1.02] transition-transform">
+              <button type="submit" className="bg-black text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest italic hover:scale-[1.02] transition-transform">
                 Subscribe Now
               </button>
             </form>
@@ -173,10 +173,12 @@ const LandingPage: React.FC = () => {
 };
 
 function formatPrice(amount: number) {
+  // Prices are stored in the smallest currency unit (e.g. cents).
+  const majorUnits = amount / 100;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-  }).format(amount);
+  }).format(majorUnits);
 }
 
 export default LandingPage;

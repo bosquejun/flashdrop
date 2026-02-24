@@ -58,16 +58,6 @@ services:
       WORKERS: 1
       SERVICE_INSTANCE_NAME: "{{.Service.Name}}.{{.Task.Slot}}"
 
-
-  nginx:
-    image: nginx:latest
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - api
-
   prometheus:
     image: prom/prometheus:v2.52.0
     ports:

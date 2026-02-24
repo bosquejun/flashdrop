@@ -12,12 +12,18 @@ import productsRoutes from "./products.routes.js";
 const mockGetProducts = vi.fn();
 const mockGetProduct = vi.fn();
 const mockGetProductStock = vi.fn();
+const mockGetProductSaleStatus = vi.fn();
 
-vi.mock("@/app/products/service.js", () => ({
-  getProducts: (...args: unknown[]) => mockGetProducts(...args),
-  getProduct: (...args: unknown[]) => mockGetProduct(...args),
-  getProductStock: (...args: unknown[]) => mockGetProductStock(...args),
-}));
+vi.mock("@/app/products/service.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/app/products/service.js")>();
+  return {
+    ...actual,
+    getProducts: (...args: unknown[]) => mockGetProducts(...args),
+    getProduct: (...args: unknown[]) => mockGetProduct(...args),
+    getProductStock: (...args: unknown[]) => mockGetProductStock(...args),
+    getProductSaleStatus: (...args: unknown[]) => mockGetProductSaleStatus(...args),
+  };
+});
 
 function createMockProduct(overrides: Partial<Product> = {}): Product {
   const now = new Date();
@@ -165,6 +171,55 @@ describe("products routes", () => {
       expect(body.status).toBe("error");
       expect(body.error).toBe("Product not found");
       expect(mockGetProductStock).toHaveBeenCalledWith("SKU-MISSING");
+    });
+  });
+
+  describe("GET /:sku/sale-status", () => {
+    it("returns 200 and sale status when getProductSaleStatus succeeds", async () => {
+      mockGetProductSaleStatus.mockResolvedValue({
+        status: "active",
+        startDate: "2025-01-01T00:00:00.000Z",
+        endDate: "2025-12-31T23:59:59.000Z",
+        availableStock: 10,
+        totalStock: 100,
+        limitPerUser: 1,
+        price: 29.99,
+        currency: "USD",
+        name: "Flash Item",
+        description: null,
+        imageUrl: null,
+        sku: "SKU-XYZ",
+      });
+
+      const app = await buildProductsApp();
+      const res = await app.inject({
+        method: "GET",
+        url: "/SKU-XYZ/sale-status",
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.status).toBe("ok");
+      expect(body.data.status).toBe("active");
+      expect(body.data.availableStock).toBe(10);
+      expect(body.data.sku).toBe("SKU-XYZ");
+      expect(mockGetProductSaleStatus).toHaveBeenCalledWith("SKU-XYZ");
+    });
+
+    it("returns 404 when getProductSaleStatus returns null", async () => {
+      mockGetProductSaleStatus.mockResolvedValue(null);
+
+      const app = await buildProductsApp();
+      const res = await app.inject({
+        method: "GET",
+        url: "/SKU-MISSING/sale-status",
+      });
+
+      expect(res.statusCode).toBe(404);
+      const body = res.json();
+      expect(body.status).toBe("error");
+      expect(body.error).toBe("Product not found");
+      expect(mockGetProductSaleStatus).toHaveBeenCalledWith("SKU-MISSING");
     });
   });
 });

@@ -1,5 +1,6 @@
 import { AppError } from "@/api/http/v1/middleware/errorHandler.js";
 import * as productService from "@/app/products/service.js";
+import { saleStatusResponseSchema } from "@/app/products/service.js";
 import { createSuccessResponse } from "@/lib/response.js";
 import { createSuccessResponseSchema, productSchema, skuSchema } from "@repo/schema";
 import type { FastifyInstance } from "fastify";
@@ -31,6 +32,26 @@ export default async function productsRoutes(app: FastifyInstance): Promise<void
         throw new AppError(404, "Product not found", "NOT_FOUND");
       }
       reply.send(createSuccessResponse(stockResponseSchema, stock));
+    }
+  );
+
+  typedApp.get(
+    "/:sku/sale-status",
+    {
+      schema: {
+        params: z.object({ sku: skuSchema }),
+        response: {
+          200: createSuccessResponseSchema(saleStatusResponseSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const params = request.params as { sku: string };
+      const saleStatus = await productService.getProductSaleStatus(params.sku);
+      if (!saleStatus) {
+        throw new AppError(404, "Product not found", "NOT_FOUND");
+      }
+      reply.send(createSuccessResponse(saleStatusResponseSchema, saleStatus));
     }
   );
 

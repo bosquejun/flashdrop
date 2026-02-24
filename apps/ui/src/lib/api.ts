@@ -95,6 +95,30 @@ export async function getProductStock(sku: string): Promise<ProductStock> {
   return body.data;
 }
 
+/** ProductFlashSaleInfo-shaped response from GET /api/v1/products/:sku/sale-status (cached on server). */
+export interface SaleStatusApiResponse {
+  status: "upcoming" | "active" | "ended";
+  startDate: string;
+  endDate: string;
+  availableStock: number;
+  totalStock: number;
+  limitPerUser: number;
+  price: number;
+  currency: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  sku: string;
+}
+
+/** GET /api/v1/products/:sku/sale-status - returns sale status (server-cached). Throws ApiError on 404. */
+export async function getSaleStatus(sku: string): Promise<SaleStatusApiResponse> {
+  const body = await request<SaleStatusApiResponse>(
+    `/products/${encodeURIComponent(sku)}/sale-status`
+  );
+  return body.data;
+}
+
 /** POST /api/v1/orders - create order. Throws ApiError on failure (e.g. FLASH_SALE_ENDED, FLASH_SALE_NOT_STARTED, LIMIT_EXCEEDED). */
 export async function createOrder(
   payload: CreateOrderRequest

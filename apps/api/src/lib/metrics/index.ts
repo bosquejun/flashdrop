@@ -1,5 +1,7 @@
 import { randomBytes } from "node:crypto";
+import { getProductTotalKey } from "@/app/products/utils.js";
 import { env } from "@/config/env.js";
+import getRedis from "@/lib/redis.js";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { Redis } from "ioredis";
 import promClient from "prom-client";
@@ -50,6 +52,67 @@ export function syncHeapMetrics(): void {
     processUptimeSeconds.set(process.uptime());
   } catch {
     // ignore
+  }
+}
+
+/** Flash sale stock gauges (values synced from Redis on /metrics scrape). */
+const flashSaleStockAvailable = new promClient.Gauge({
+  name: "flash_sale_stock_available",
+  help: "Available stock for flash sale product (from Redis).",
+  labelNames: ["product_sku"],
+  registers: [register],
+});
+const flashSaleStockTotal = new promClient.Gauge({
+  name: "flash_sale_stock_total",
+  help: "Total stock for flash sale product (from Redis, set at seed).",
+  labelNames: ["product_sku"],
+  registers: [register],
+});
+
+/** Order rejection counters (incremented when create-order Lua returns -1 or -2). */
+export const ordersRejectedOutOfStockTotal = new promClient.Counter({
+  name: "orders_rejected_out_of_stock_total",
+  help: "Orders rejected due to out of stock (Redis create-order returned -2).",
+  labelNames: ["product_sku"],
+  registers: [register],
+});
+export const ordersRejectedLimitExceededTotal = new promClient.Counter({
+  name: "orders_rejected_limit_exceeded_total",
+  help: "Orders rejected due to per-user limit (Redis create-order returned -1).",
+  labelNames: ["product_sku"],
+  registers: [register],
+});
+
+const STOCK_KEY_PREFIX = "product:{";
+const STOCK_KEY_SUFFIX = "}:stock";
+
+/** Sync flash sale stock gauges from Redis (called on /metrics scrape). */
+export async function syncFlashSaleStockMetrics(): Promise<void> {
+  try {
+    const redis = getRedis();
+    const keys: string[] = [];
+    for await (const key of redis.scanStream({ match: "product:{*}:stock", count: 100 })) {
+      keys.push(key as string);
+    }
+    for (const key of keys) {
+      if (
+        typeof key !== "string" ||
+        !key.startsWith(STOCK_KEY_PREFIX) ||
+        !key.endsWith(STOCK_KEY_SUFFIX)
+      )
+        continue;
+      const sku = key.slice(STOCK_KEY_PREFIX.length, key.length - STOCK_KEY_SUFFIX.length);
+      const [stockVal, totalVal] = await Promise.all([
+        redis.get(key),
+        redis.get(getProductTotalKey(sku)),
+      ]);
+      const available = Number.parseInt(stockVal ?? "0", 10);
+      const total = Number.parseInt(totalVal ?? "0", 10);
+      if (!Number.isNaN(available)) flashSaleStockAvailable.labels(sku).set(available);
+      if (!Number.isNaN(total)) flashSaleStockTotal.labels(sku).set(total);
+    }
+  } catch {
+    // Redis not connected or scan failed; skip flash sale metrics
   }
 }
 
@@ -230,6 +293,7 @@ export function instrumentRedis(client: Redis): void {
 
 export async function metricsHandler(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
   syncHeapMetrics();
+  await syncFlashSaleStockMetrics();
   reply.type(register.contentType);
   const metrics = await register.metrics();
   reply.send(metrics);

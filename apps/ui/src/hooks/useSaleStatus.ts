@@ -1,25 +1,23 @@
 import { useEffect, useState, useCallback } from "react";
 import type { SaleStatusResponse } from "../types/legacySchemas";
-import { getProduct, getProductStock, isApiError } from "../lib/api";
-import { productToFlashSaleInfo } from "../lib/flashSale";
+import { getSaleStatus, isApiError } from "../lib/api";
 
-function productToSaleStatusResponse(product: Awaited<ReturnType<typeof getProduct>>): SaleStatusResponse {
-  const info = productToFlashSaleInfo(product);
+function saleStatusApiToResponse(api: Awaited<ReturnType<typeof getSaleStatus>>): SaleStatusResponse {
   return {
-    status: info.status,
-    remainingStock: info.availableStock,
+    status: api.status,
+    remainingStock: api.availableStock,
     sale: {
-      sku: info.sku,
-      startTime: info.startDate.toISOString(),
-      endTime: info.endDate.toISOString(),
-      salePrice: info.price,
-      originalPrice: info.price,
-      maxPerUser: info.limitPerUser,
-      totalStock: info.totalStock,
+      sku: api.sku,
+      startTime: api.startDate,
+      endTime: api.endDate,
+      salePrice: api.price,
+      originalPrice: api.price,
+      maxPerUser: api.limitPerUser,
+      totalStock: api.totalStock,
       snapshot: {
-        name: info.name,
-        description: info.description ?? "",
-        imageUrl: info.imageUrl ?? "",
+        name: api.name,
+        description: api.description ?? "",
+        imageUrl: api.imageUrl ?? "",
       },
     },
   };
@@ -32,16 +30,8 @@ export function useSaleStatus(sku: string, pollIntervalMs = 2000) {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const product = await getProduct(sku);
-      const response = productToSaleStatusResponse(product);
-      try {
-        const stock = await getProductStock(sku);
-        response.remainingStock = stock.availableStock;
-        if (response.sale) response.sale.totalStock = stock.totalStock;
-      } catch {
-        // keep product-based stock if stock endpoint fails
-      }
-      setData(response);
+      const api = await getSaleStatus(sku);
+      setData(saleStatusApiToResponse(api));
       setError(null);
     } catch (err) {
       if (isApiError(err) && err.statusCode === 404) {

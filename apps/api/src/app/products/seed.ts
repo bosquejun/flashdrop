@@ -3,7 +3,7 @@ import { createLogger } from "@repo/logger";
 import type { Product } from "@repo/schema";
 import { ObjectId } from "mongodb";
 import { productsCollection } from "./repository.js";
-import { getProductBuyersKey, getProductStockKey } from "./utils.js";
+import { getProductBuyersKey, getProductStockKey, getProductTotalKey } from "./utils.js";
 
 const logger = createLogger("products-seed");
 
@@ -54,11 +54,14 @@ export async function seedProducts() {
   const oneDayMs = 24 * 60 * 60 * 1000;
   for (const product of PRODUCTS) {
     const stockKey = getProductStockKey(product.sku);
+    const totalKey = getProductTotalKey(product.sku);
     const buyersKey = getProductBuyersKey(product.sku);
     await redis.set(stockKey, product.availableStock);
+    await redis.set(totalKey, product.totalStock);
     await redis.hset(buyersKey, product.sku, 0);
     const expireAtMs = product.endDate.getTime() + oneDayMs;
     await redis.pexpireat(stockKey, expireAtMs);
+    await redis.pexpireat(totalKey, expireAtMs);
     await redis.pexpireat(buyersKey, expireAtMs);
   }
 

@@ -1,8 +1,11 @@
 export const formatPrice = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
+  // Prices are stored in the smallest currency unit (e.g. cents).
+  // Convert to major units for display.
+  const majorUnits = amount / 100;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(majorUnits);
 };
 
 export const formatDuration = (ms: number | null) => {
