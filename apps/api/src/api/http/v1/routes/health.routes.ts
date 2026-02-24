@@ -1,10 +1,25 @@
-import { sendSuccess } from "@/lib/response.js";
-import { Router } from "express";
+import { createSuccessResponse } from "@/lib/response.js";
+import { createSuccessResponseSchema } from "@repo/schema";
+import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
 
-const router = Router();
+const healthCheckResponseSchema = z.object({ uptime: z.number() });
 
-router.get("/", (_req, res) => {
-  sendSuccess(res, { uptime: process.uptime() });
-});
+export default async function healthRoutes(app: FastifyInstance): Promise<void> {
+  const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
-export default router;
+  typedApp.get(
+    "/",
+    {
+      schema: {
+        response: {
+          200: createSuccessResponseSchema(healthCheckResponseSchema),
+        },
+      },
+    },
+    async (_request, reply) => {
+      reply.send(createSuccessResponse(healthCheckResponseSchema, { uptime: process.uptime() }));
+    }
+  );
+}

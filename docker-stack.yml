@@ -1,8 +1,15 @@
 version: '3.8'
 
+networks:
+  monitor:
+    driver: overlay
+    attachable: true
+
 services:
   mongodb:
     image: mongo:7
+    networks:
+      - monitor
     ports:
       - "27017:27017"
     volumes:
@@ -14,6 +21,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    networks:
+      - monitor
     ports:
       - "6379:6379"
     healthcheck:
@@ -22,13 +31,16 @@ services:
 
   api:
     image: flashdrop/api:latest
+    networks:
+      - monitor
     environment:
       NODE_ENV: production
       PORT: 4000
       HOST: 0.0.0.0
       DATABASE_URL: mongodb://mongodb:27017/flashdrop
       REDIS_URL: redis://redis:6379
-      WORKERS: 1
+      WORKERS: 4
+      SERVICE_INSTANCE_NAME: "{{.Service.Name}}.{{.Task.Slot}}"
     ports:
       - target: 4000
         published: 4000
@@ -42,13 +54,16 @@ services:
         parallelism: 1
         delay: 5s
     healthcheck:
-      test: ["CMD-SHELL", "node -e 'require(\"http\").get(\"http://127.0.0.1:4000/api/v1/health\",()=>{})' || exit 1"]
+      # Wait for response; exit 0 only on 200, else 1 (connection error or non-2xx)
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:4000/api/v1/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));\""]
       interval: 10s
       retries: 5
-      start_period: 20s   # give server time to fully initialize
+      start_period: 20s
 
   prometheus:
     image: prom/prometheus:v2.52.0
+    networks:
+      - monitor
     ports:
       - "9090:9090"
     volumes:
@@ -57,12 +72,15 @@ services:
 
   grafana:
     image: grafana/grafana:11.2.0
+    networks:
+      - monitor
     ports:
       - "4001:4001"
     environment:
       GF_SERVER_HTTP_PORT: 4001
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
 
 volumes:
   mongo_data:

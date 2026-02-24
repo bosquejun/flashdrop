@@ -19,20 +19,16 @@ export const PRODUCTS: ProductSeed[] = [
     name: "iPhone 17 Pro Max",
     description:
       "The all-new iPhone 17 Pro Max with A19 Pro chip, 48MP fusion camera, and titanium design. 256GB — Black Titanium.",
-    price: 119900,
+    price: 99999,
     availableStock: 10000,
     totalStock: 10000,
     currency: "USD",
     imageUrl:
       "https://citymagazine.b-cdn.net/wp-content/uploads/2025/09/iPhone-17-Pro-Max-2025-02-1400x788.webp",
-    flashSale: {
-      startDate: startDate,
-      endDate: endDate,
-      price: 119900 * 0.5, // 50% off
-      stock: 10000 * 0.5, // 50% of total stock
-      limit: {
-        perUser: 1,
-      },
+    startDate: startDate,
+    endDate: endDate,
+    limit: {
+      perUser: 1,
     },
   },
 ];
@@ -53,11 +49,17 @@ export async function seedProducts() {
     }))
   );
 
-  // Prepare Redis for products
+  // Prepare Redis for products (expire 1 day after flash sale ends)
   const redis = getRedis();
+  const oneDayMs = 24 * 60 * 60 * 1000;
   for (const product of PRODUCTS) {
-    await redis.set(getProductStockKey(product.sku), product.availableStock);
-    await redis.hset(getProductBuyersKey(product.sku), product.sku, 0);
+    const stockKey = getProductStockKey(product.sku);
+    const buyersKey = getProductBuyersKey(product.sku);
+    await redis.set(stockKey, product.availableStock);
+    await redis.hset(buyersKey, product.sku, 0);
+    const expireAtMs = product.endDate.getTime() + oneDayMs;
+    await redis.pexpireat(stockKey, expireAtMs);
+    await redis.pexpireat(buyersKey, expireAtMs);
   }
 
   logger.debug({ insertedCount: result.insertedCount }, "Products seeded");

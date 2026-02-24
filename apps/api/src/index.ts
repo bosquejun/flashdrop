@@ -4,6 +4,10 @@ import cluster from "node:cluster";
 import { env } from "./config/env.js";
 import server from "./server.js";
 
+/**
+ * Start the server in cluster mode.
+ * @returns {Promise<void>}
+ */
 if (cluster.isPrimary) {
   console.log(`Master ${process.pid} is running`);
 
@@ -16,5 +20,6 @@ if (cluster.isPrimary) {
     cluster.fork();
   });
 } else {
+  // start the server in worker mode
   server();
 }

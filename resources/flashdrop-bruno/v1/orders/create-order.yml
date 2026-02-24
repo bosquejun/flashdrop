@@ -10,8 +10,7 @@ http:
     type: json
     data: |-
       {
-        "productSKU":"IPHONE-17-PRO-MAX-256-BLK",
-        "flashSaleId":"699a7960fa696ce129c87785"
+        "productSKU":"IPHONE-17-PRO-MAX-256-BLK"
       }
   auth: inherit
 

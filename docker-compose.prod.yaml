@@ -47,6 +47,7 @@ services:
       RATE_LIMIT_MAX: 10000
       LOG_LEVEL: info
       WORKERS: 1
+      SERVICE_INSTANCE_NAME: "{{.Service.Name}}.{{.Task.Slot}}"
 
   prometheus:
     image: prom/prometheus:v2.52.0

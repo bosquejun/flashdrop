@@ -56,6 +56,8 @@ services:
       RATE_LIMIT_MAX: 10000
       LOG_LEVEL: debug
       WORKERS: 1
+      SERVICE_INSTANCE_NAME: "{{.Service.Name}}.{{.Task.Slot}}"
+
 
   nginx:
     image: nginx:latest

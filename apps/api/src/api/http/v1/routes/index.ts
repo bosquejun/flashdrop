@@ -1,12 +1,10 @@
-import { Router } from "express";
+import type { FastifyInstance } from "fastify";
 import healthRoutes from "./health.routes.js";
 import ordersRoutes from "./orders.routes.js";
 import productsRoutes from "./products.routes.js";
 
-const router = Router();
-
-router.use("/health", healthRoutes);
-router.use("/products", productsRoutes);
-router.use("/orders", ordersRoutes);
-
-export default router;
+export default async function v1Routes(app: FastifyInstance): Promise<void> {
+  void app.register(healthRoutes, { prefix: "/health" });
+  void app.register(productsRoutes, { prefix: "/products" });
+  void app.register(ordersRoutes, { prefix: "/orders" });
+}

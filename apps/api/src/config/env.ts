@@ -13,10 +13,17 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default("*"),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
+  /** When false, global rate limiter is disabled (e.g. for stress testing). */
+  ENABLE_GLOBAL_RATE_LIMITER: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   WORKERS: z.coerce.number().default(1),
   /** FEATURE FLAGS */
   FEATURE_FLAG_DISABLE_REDIS_ATOMIC_OPERATIONS: z.boolean().default(false),
+  HOSTNAME: z.string().optional(),
+  SERVICE_INSTANCE_NAME: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

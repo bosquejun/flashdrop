@@ -1,4 +1,4 @@
-import { createEventsHub } from "@/lib/events-hub.js";
+import { createEventsStream } from "@/lib/events-stream.js";
 import getRedis from "@/lib/redis.js";
 import { createLogger } from "@repo/logger";
 import type { Product } from "@repo/schema";
@@ -12,11 +12,19 @@ type ProductEvents = {
   deleted: Pick<Product, "_id" | "sku">;
 };
 
-const productHub = createEventsHub<ProductEvents, { userId?: string }>("product");
+const productEventsStream = createEventsStream<ProductEvents, { userId?: string }>(
+  "product",
+  "product-events"
+);
 
-export default function initProductSubscribers() {
+/**
+ * Initialize the product subscribers.
+ * It subscribes to the product events and invalidates the product list cache when a product is created, updated or deleted.
+ * @returns {Promise<void>}
+ */
+export default async function initProductSubscribers() {
   // subscribe to the product created event
-  productHub.on("created", async (product) => {
+  productEventsStream.on("created", async (product) => {
     const redis = getRedis();
     logger.info(
       { id: product._id, sku: product.sku },
@@ -29,7 +37,7 @@ export default function initProductSubscribers() {
   });
 
   // subscribe to the product updated event
-  productHub.on("updated", async (product) => {
+  productEventsStream.on("updated", async (product) => {
     const redis = getRedis();
     await redis.del(getProductsListKey({}));
 
@@ -41,7 +49,7 @@ export default function initProductSubscribers() {
   });
 
   // subscribe to the product deleted event
-  productHub.on("deleted", async (product) => {
+  productEventsStream.on("deleted", async (product) => {
     const redis = getRedis();
     await redis.del(getProductsListKey({}));
 
@@ -49,6 +57,10 @@ export default function initProductSubscribers() {
       await redis.del(getProductKey(product.sku));
     }
   });
+
+  productEventsStream
+    .listen()
+    .catch((err: Error) => logger.error({ err }, "productEventsStream.listen failed"));
 
   logger.info("Product subscribers initialized");
 }

@@ -7,7 +7,7 @@ import { createLogger } from "@repo/logger";
 
 const logger = createLogger("loader");
 
-const STARTUP_RETRIES = 10;
+const STARTUP_RETRIES = 5;
 const STARTUP_RETRY_DELAY_MS = 2000;
 
 async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
@@ -52,7 +52,7 @@ export default async function loaders(): Promise<void> {
   logger.info("Redis connected");
 
   logger.debug("Initializing subscribers...");
-  initSubscribers();
+  await initSubscribers();
   logger.info("Subscribers initialized");
 
   logger.info("Loaders completed");
@@ -67,8 +67,8 @@ export async function gracefulShutdown(): Promise<void> {
   logger.info("Graceful shutdown completed");
 }
 
-export function initSubscribers(): void {
-  initProductSubscribers();
-  initOrderSubscribers();
+export async function initSubscribers(): Promise<void> {
+  await initProductSubscribers();
+  await initOrderSubscribers();
   logger.info("Subscribers initialized");
 }

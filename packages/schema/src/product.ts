@@ -9,17 +9,11 @@ export const productSchema = z.object({
   price: z.number().nonnegative(),
   totalStock: z.number().int().nonnegative(),
   availableStock: z.number().int().nonnegative(),
-  flashSale: z
-    .object({
-      startDate: z.coerce.date(),
-      endDate: z.coerce.date(),
-      price: z.number().nonnegative(),
-      stock: z.number().int().nonnegative(),
-      limit: z.object({
-        perUser: z.number().int().nonnegative(),
-      }),
-    })
-    .optional(),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  limit: z.object({
+    perUser: z.number().int().nonnegative().default(1).optional(),
+  }),
   currency: z.string().length(3).default("USD"),
   imageUrl: z.string().url().nullable().default(null),
   createdAt: z.coerce.date().default(new Date()),

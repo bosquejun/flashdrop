@@ -123,6 +123,13 @@ yarn exec turbo link
 pnpm exec turbo link
 ```
 
+## Monitoring (Flashdrop API)
+
+The API exposes Prometheus metrics at `/metrics`. Grafana dashboards are provisioned from `grafana/provisioning/dashboards/json/`.
+
+- **Per-instance identity**: Each API instance is identified by the `instance` label (from `HOSTNAME` in Docker/Swarm/Kubernetes). Ensure `HOSTNAME` is set and unique per replica so dashboards and alerts can distinguish instances.
+- **Global rate limiter**: Disabled by default for stress testing. Set `ENABLE_GLOBAL_RATE_LIMITER=true` to enable. When enabled, rate-limit rejections (429) are counted in `http_rate_limit_exceeded_total`.
+
 ## Useful Links
 
 Learn more about the power of Turborepo:

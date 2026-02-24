@@ -1,39 +1,71 @@
 import { AppError } from "@/api/http/v1/middleware/errorHandler.js";
 import * as productService from "@/app/products/service.js";
-import { sendSuccess } from "@/lib/response.js";
-import { skuSchema } from "@repo/schema";
-import { Router } from "express";
+import { createSuccessResponse } from "@/lib/response.js";
+import { createSuccessResponseSchema, productSchema, skuSchema } from "@repo/schema";
+import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
 
-const router = Router();
-
-function parseSku(raw: unknown): string {
-  const result = skuSchema.safeParse(raw);
-  if (!result.success) {
-    throw new AppError(400, "Invalid or missing SKU", "VALIDATION_ERROR");
-  }
-  return result.data;
-}
-
-router.get("/", async (_req, res, next) => {
-  try {
-    const products = await productService.getProducts();
-    sendSuccess(res, products);
-  } catch (err) {
-    next(err);
-  }
+const stockResponseSchema = z.object({
+  availableStock: z.number().int().nonnegative(),
+  totalStock: z.number().int().nonnegative(),
 });
 
-router.get("/:sku", async (req, res, next) => {
-  try {
-    const sku = parseSku(req.params["sku"]);
-    const product = await productService.getProduct(sku);
-    if (!product) {
-      throw new AppError(404, "Product not found", "NOT_FOUND");
+export default async function productsRoutes(app: FastifyInstance): Promise<void> {
+  const typedApp = app.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.get(
+    "/:sku/stock",
+    {
+      schema: {
+        params: z.object({ sku: skuSchema }),
+        response: {
+          200: createSuccessResponseSchema(stockResponseSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const params = request.params as { sku: string };
+      const stock = await productService.getProductStock(params.sku);
+      if (!stock) {
+        throw new AppError(404, "Product not found", "NOT_FOUND");
+      }
+      reply.send(createSuccessResponse(stockResponseSchema, stock));
     }
-    sendSuccess(res, product);
-  } catch (err) {
-    next(err);
-  }
-});
+  );
 
-export default router;
+  typedApp.get(
+    "/",
+    {
+      schema: {
+        response: {
+          200: createSuccessResponseSchema(productSchema.array()),
+        },
+      },
+    },
+    async (_request, reply) => {
+      const products = await productService.getProducts();
+      reply.send(createSuccessResponse(productSchema.array(), products));
+    }
+  );
+
+  typedApp.get(
+    "/:sku",
+    {
+      schema: {
+        params: z.object({ sku: skuSchema }),
+        response: {
+          200: createSuccessResponseSchema(productSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const params = request.params as { sku: string };
+      const product = await productService.getProduct(params.sku);
+      if (!product) {
+        throw new AppError(404, "Product not found", "NOT_FOUND");
+      }
+      reply.send(createSuccessResponse(productSchema, product));
+    }
+  );
+}

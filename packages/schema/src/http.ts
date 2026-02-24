@@ -8,11 +8,13 @@ export const errorResponseSchema = z.object({
   data: z.null(),
   error: z.string().or(
     z.object({
-      issues: z.record(z.string(), z.any()),
+      issues: z.array(z.record(z.string(), z.any())),
     })
   ),
+  code: z.string().optional(),
   timestamp: z.string().datetime(),
 });
+
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
 /**
@@ -29,15 +31,13 @@ export function createSuccessResponseSchema<T extends z.ZodTypeAny>(dataSchema: 
     status: z.literal("ok"),
     data: dataSchema,
     error: z.null(),
+    code: z.null(),
     timestamp: z.string().datetime(),
   });
 }
 
-export type SuccessResponse<T> = {
-  status: "ok";
-  data: T;
-  error: null;
-  timestamp: string;
-};
+export type SuccessResponse<T extends z.ZodTypeAny> = z.infer<
+  ReturnType<typeof createSuccessResponseSchema<T>>
+>;
 
-export type ApiResponse<T> = SuccessResponse<T> | ErrorResponse;
+export type ApiResponse<T extends z.ZodTypeAny> = SuccessResponse<T> | ErrorResponse;

@@ -1,11 +1,25 @@
-# Prometheus config for Flashdrop API (named services api-1..api-4 in Compose).
+# Prometheus config for Flashdrop API.
+# - Docker Compose: static target api:4000.
+# - Docker Swarm: DNS discovery so every API task is scraped (tasks.<stack>_api).
+#   If your stack name is not "flashdrop", change the name below to tasks.<yourstack>_api.
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
 scrape_configs:
+  # Docker Compose: single service "api"
   - job_name: "api"
     static_configs:
-      - targets: ["api-1:4000", "api-2:4000", "api-3:4000", "api-4:4000"]
+      - targets: ["api:4000"]
         labels:
           job: "api"
+
+  # Docker Swarm: discover all API tasks (one target per replica)
+  - job_name: "api-swarm"
+    honor_labels: true
+    metrics_path: /metrics
+    dns_sd_configs:
+      - names:
+          - tasks.flashdrop_api
+        type: A
+        port: 4000

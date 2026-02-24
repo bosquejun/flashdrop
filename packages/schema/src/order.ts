@@ -9,6 +9,8 @@ export const orderSchema = z.object({
   productSKU: skuSchema,
   userId: userIdentifierSchema,
   purchasedAt: z.coerce.date(),
+  quantity: z.number().int().nonnegative().default(1),
+  totalPrice: z.number().nonnegative(),
   price: z.number().nonnegative(),
   currency: z.string().length(3).default("USD"),
   status: z.enum(["pending", "completed", "failed"]),
@@ -22,7 +24,7 @@ export const createOrderRequestSchema = orderSchema
     productSKU: true,
   })
   .extend({
-    quantity: z.number().int().nonnegative().optional(),
+    quantity: z.number().int().nonnegative().default(1).optional(),
   });
 
 export type CreateOrderRequest = z.infer<typeof createOrderRequestSchema>;

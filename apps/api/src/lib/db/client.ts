@@ -1,3 +1,4 @@
+import { instrumentMongo } from "@/lib/metrics/index.js";
 import { env } from "@/config/env.js";
 import { createLogger } from "@repo/logger";
 import { type Collection, type Db, type Document, MongoClient } from "mongodb";
@@ -6,7 +7,9 @@ const logger = createLogger("database");
 
 const client = new MongoClient(env.DATABASE_URL, {
   maxPoolSize: env.MONGO_POOL_SIZE,
+  monitorCommands: true,
 });
+instrumentMongo(client);
 
 let db: Db;
 

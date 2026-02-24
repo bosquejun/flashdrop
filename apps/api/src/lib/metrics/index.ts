@@ -1,21 +1,25 @@
-import type { Request, Response } from "express";
 import { randomBytes } from "node:crypto";
+import { env } from "@/config/env.js";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { Redis } from "ioredis";
 import promClient from "prom-client";
 
 const register = new promClient.Registry();
 
-// Instance label: dynamic per process. Use HOSTNAME in Docker/K8s, or a short random id otherwise.
 function getInstanceId(): string {
-  if (process.env["HOSTNAME"]) return process.env["HOSTNAME"];
+  if (env.SERVICE_INSTANCE_NAME) {
+    return env.SERVICE_INSTANCE_NAME;
+  }
+  if (env.HOSTNAME) {
+    return env.HOSTNAME;
+  }
   return `api-${randomBytes(4).toString("hex")}`;
 }
+
 const instanceId = getInstanceId();
 register.setDefaultLabels({ instance: instanceId, service: "api" });
-
 promClient.collectDefaultMetrics({ register, prefix: "node_" });
 
-// Custom gauges updated on each scrape so heap and event loop lag are never empty.
-// (prom-client's default event loop lag uses setImmediate and can be one scrape behind.)
 const heapUsedBytes = new promClient.Gauge({
   name: "nodejs_heap_size_used_bytes",
   help: "Process heap size used from Node.js in bytes (synced on scrape).",
@@ -32,18 +36,23 @@ const eventLoopLagSeconds = new promClient.Gauge({
   registers: [register],
 });
 
-// Update heap gauges on every metrics scrape so they always have current values.
-function syncHeapMetrics(): void {
+const processUptimeSeconds = new promClient.Gauge({
+  name: "process_uptime_seconds",
+  help: "Process uptime in seconds (time since process start).",
+  registers: [register],
+});
+
+export function syncHeapMetrics(): void {
   try {
     const mem = process.memoryUsage();
     heapUsedBytes.set(mem.heapUsed);
     heapTotalBytes.set(mem.heapTotal);
+    processUptimeSeconds.set(process.uptime());
   } catch {
     // ignore
   }
 }
 
-// Measure event loop lag on an interval so the gauge is always populated.
 function startEventLoopLagMeasurement(): void {
   function measure(): void {
     const start = process.hrtime.bigint();
@@ -73,6 +82,13 @@ const httpRequestsTotal = new promClient.Counter({
   registers: [register],
 });
 
+const httpRateLimitExceededTotal = new promClient.Counter({
+  name: "http_rate_limit_exceeded_total",
+  help: "Total number of requests rejected due to rate limiting (429)",
+  labelNames: ["route"],
+  registers: [register],
+});
+
 function getRoute(path: string): string {
   if (path === "/metrics") return "/metrics";
   if (path.startsWith("/api/v1/")) {
@@ -84,29 +100,139 @@ function getRoute(path: string): string {
   return path;
 }
 
-export function metricsMiddleware(req: Request, res: Response, next: () => void): void {
-  if (req.path === "/metrics") {
-    next();
+const METRICS_START = Symbol("metricsStart");
+
+export function metricsOnRequest(
+  request: FastifyRequest,
+  _reply: FastifyReply,
+  done: () => void
+): void {
+  if (request.url === "/metrics") {
+    done();
     return;
   }
-  const start = performance.now();
-  const route = getRoute(req.path);
-
-  res.on("finish", () => {
-    const duration = (performance.now() - start) / 1000;
-    const status = String(res.statusCode);
-    httpRequestDuration.observe({ method: req.method, route, status_code: status }, duration);
-    httpRequestsTotal.inc({ method: req.method, route, status_code: status });
-  });
-
-  next();
+  (request as FastifyRequest & { [METRICS_START]?: number })[METRICS_START] = performance.now();
+  done();
 }
 
-export async function metricsHandler(_req: Request, res: Response): Promise<void> {
+export function metricsOnResponse(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  done: () => void
+): void {
+  const start = (request as FastifyRequest & { [METRICS_START]?: number })[METRICS_START];
+  if (start === undefined) {
+    done();
+    return;
+  }
+  const duration = (performance.now() - start) / 1000;
+  const route = getRoute(request.url);
+  const status = String(reply.statusCode);
+  httpRequestDuration.observe({ method: request.method, route, status_code: status }, duration);
+  httpRequestsTotal.inc({ method: request.method, route, status_code: status });
+  if (reply.statusCode === 429) {
+    httpRateLimitExceededTotal.inc({ route });
+  }
+  done();
+}
+
+const redisCommandsTotal = new promClient.Counter({
+  name: "redis_commands_total",
+  help: "Total number of Redis commands",
+  labelNames: ["command", "status"],
+  registers: [register],
+});
+
+const redisCommandsDuration = new promClient.Histogram({
+  name: "redis_commands_duration_seconds",
+  help: "Redis command duration in seconds",
+  labelNames: ["command"],
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
+  registers: [register],
+});
+
+const mongodbOperationsTotal = new promClient.Counter({
+  name: "mongodb_operations_total",
+  help: "Total number of MongoDB operations",
+  labelNames: ["collection", "operation", "status"],
+  registers: [register],
+});
+
+const mongodbOperationsDuration = new promClient.Histogram({
+  name: "mongodb_operations_duration_seconds",
+  help: "MongoDB operation duration in seconds",
+  labelNames: ["collection", "operation"],
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  registers: [register],
+});
+
+const mongoStartedByRequestId = new Map<unknown, { commandName: string; collection: string }>();
+
+export function instrumentMongo(client: {
+  on: (event: string, handler: (event: Record<string, unknown>) => void) => void;
+}): void {
+  client.on("commandStarted", (event: Record<string, unknown>) => {
+    const requestId = event.requestId;
+    const commandName = String(event.commandName ?? "unknown");
+    const cmd = (event.command as Record<string, unknown>) ?? {};
+    const collection =
+      (typeof cmd[commandName] === "string"
+        ? (cmd[commandName] as string)
+        : (cmd.collection as string)) ?? "unknown";
+    mongoStartedByRequestId.set(requestId, { commandName, collection });
+  });
+
+  client.on("commandSucceeded", (event: Record<string, unknown>) => {
+    const requestId = event.requestId;
+    const info = mongoStartedByRequestId.get(requestId);
+    mongoStartedByRequestId.delete(requestId);
+    const commandName = info?.commandName ?? String(event.commandName ?? "unknown");
+    const collection = info?.collection ?? "unknown";
+    const durationMs = Number(event.duration ?? 0);
+    mongodbOperationsTotal.inc({ collection, operation: commandName, status: "ok" });
+    mongodbOperationsDuration.observe({ collection, operation: commandName }, durationMs / 1000);
+  });
+
+  client.on("commandFailed", (event: Record<string, unknown>) => {
+    const requestId = event.requestId;
+    const info = mongoStartedByRequestId.get(requestId);
+    mongoStartedByRequestId.delete(requestId);
+    const commandName = info?.commandName ?? String(event.commandName ?? "unknown");
+    const collection = info?.collection ?? "unknown";
+    mongodbOperationsTotal.inc({ collection, operation: commandName, status: "error" });
+  });
+}
+
+export function instrumentRedis(client: Redis): void {
+  const originalSendCommand = client.sendCommand.bind(client);
+  client.sendCommand = ((command: Parameters<Redis["sendCommand"]>[0]) => {
+    const cmdName =
+      command && typeof (command as { name?: string }).name !== "undefined"
+        ? String((command as { name: string }).name).toLowerCase()
+        : "unknown";
+    const start = performance.now();
+    const result = originalSendCommand(command) as Promise<unknown>;
+    if (result && typeof result.then === "function") {
+      result.then(
+        () => {
+          redisCommandsTotal.inc({ command: cmdName, status: "ok" });
+          redisCommandsDuration.observe({ command: cmdName }, (performance.now() - start) / 1000);
+        },
+        () => {
+          redisCommandsTotal.inc({ command: cmdName, status: "error" });
+          redisCommandsDuration.observe({ command: cmdName }, (performance.now() - start) / 1000);
+        }
+      );
+    }
+    return result;
+  }) as Redis["sendCommand"];
+}
+
+export async function metricsHandler(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
   syncHeapMetrics();
-  res.setHeader("Content-Type", register.contentType);
+  reply.type(register.contentType);
   const metrics = await register.metrics();
-  res.send(metrics);
+  reply.send(metrics);
 }
 
 export { register };

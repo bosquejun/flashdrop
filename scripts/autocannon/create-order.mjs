@@ -1,11 +1,9 @@
+import { randomUUID } from "node:crypto";
 import autocannon from "autocannon";
-
 const API_URL = process.env["API_URL"] ?? "http://127.0.0.1:4000";
 const CONNECTIONS = Number.parseInt(process.env["CONNECTIONS"] ?? "100", 10);
 const DURATION = Number.parseInt(process.env["DURATION"] ?? "10", 10);
-const TIMEOUT = Number.parseInt(process.env["TIMEOUT"] ?? "120", 10);
-
-let userCounter = 0;
+const TIMEOUT = Number.parseInt(process.env["TIMEOUT"] ?? "240", 10);
 
 async function run() {
   const getProduct = async () => {
@@ -33,12 +31,12 @@ async function run() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Cookie: "flashdrop-user-id=bench-user-0",
+      Cookie: `flashdrop-user-id=bench-user-${randomUUID()}`,
     },
     body,
     setupClient(client) {
       client.on("response", () => {
-        const userId = `bench-user-${userCounter++}`;
+        const userId = `bench-user-${randomUUID()}`;
         client.setHeadersAndBody(
           {
             "Content-Type": "application/json",
