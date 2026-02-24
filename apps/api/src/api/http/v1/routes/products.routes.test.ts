@@ -183,11 +183,6 @@ describe("products routes", () => {
         availableStock: 10,
         totalStock: 100,
         limitPerUser: 1,
-        price: 29.99,
-        currency: "USD",
-        name: "Flash Item",
-        description: null,
-        imageUrl: null,
         sku: "SKU-XYZ",
       });
 

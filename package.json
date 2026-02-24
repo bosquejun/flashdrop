@@ -8,6 +8,9 @@
     "bench:get-product": "node --import tsx/esm scripts/autocannon/get-product-benchmark.mjs",
     "bench:get-sale-status": "node --import tsx/esm scripts/autocannon/get-sale-status-benchmark.mjs",
     "bench:create-order": "node --import tsx/esm scripts/autocannon/create-order-benchmark.mjs",
+    "stress:sale-status": "k6 run scripts/k6/sale-status.js",
+    "stress:create-order": "k6 run scripts/k6/create-order.js",
+    "stress:mixed": "k6 run scripts/k6/mixed.js",
     "lint:fix": "biome lint . --write",
     "format": "biome format . --write",
     "format:check": "biome format .",
@@ -19,6 +22,7 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "autocannon": "^8.0.0",
+    "k6": "^0.0.0",
     "tsx": "^4.21.0",
     "turbo": "^2.8.10",
     "typescript": "5.9.2"

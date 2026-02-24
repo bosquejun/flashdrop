@@ -1,8 +1,12 @@
 import { AppError } from "@/api/http/v1/middleware/errorHandler.js";
 import * as productService from "@/app/products/service.js";
-import { saleStatusResponseSchema } from "@/app/products/service.js";
 import { createSuccessResponse } from "@/lib/response.js";
-import { createSuccessResponseSchema, productSchema, skuSchema } from "@repo/schema";
+import {
+  createSuccessResponseSchema,
+  productSchema,
+  saleStatusResponseSchema,
+  skuSchema,
+} from "@repo/schema";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";

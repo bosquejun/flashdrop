@@ -37,7 +37,7 @@ export function getProductTotalKey(sku: string) {
 }
 
 /**
- * Cache key for aggregated sale status (ProductFlashSaleInfo-like). Short TTL for freshness.
+ * Cache key for aggregated sale status. Short TTL for freshness.
  */
 export function getSaleStatusKey(sku: string): string {
   return `product:${sku}:sale-status`;

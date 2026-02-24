@@ -29,3 +29,8 @@ export {
   type Order,
   type OrderResponse,
 } from "./order";
+
+export {
+  saleStatusResponseSchema,
+  type SaleStatusResponse,
+} from "./saleStatus";

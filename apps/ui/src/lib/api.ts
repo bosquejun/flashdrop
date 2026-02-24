@@ -3,6 +3,7 @@ import type {
   ErrorResponse,
   Order,
   Product,
+  SaleStatusResponse,
 } from "@repo/schema";
 
 interface SuccessBody<T> {
@@ -13,7 +14,7 @@ interface SuccessBody<T> {
   timestamp: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:4000";
 const API_PREFIX = "/api/v1";
 
 export class ApiError extends Error {
@@ -41,10 +42,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   return res.json() as Promise<T>;
 }
 
-async function request<T>(
-  path: string,
-  options?: RequestInit
-): Promise<SuccessBody<T>> {
+async function request<T>(path: string, options?: RequestInit): Promise<SuccessBody<T>> {
   const res = await fetch(`${API_BASE}${API_PREFIX}${path}`, {
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -54,8 +52,7 @@ async function request<T>(
 
   if (body.status === "error") {
     const err = body as ErrorResponse;
-    const message =
-      typeof err.error === "string" ? err.error : "Request failed";
+    const message = typeof err.error === "string" ? err.error : "Request failed";
     throw new ApiError(message, res.status, err.code);
   }
 
@@ -95,34 +92,16 @@ export async function getProductStock(sku: string): Promise<ProductStock> {
   return body.data;
 }
 
-/** ProductFlashSaleInfo-shaped response from GET /api/v1/products/:sku/sale-status (cached on server). */
-export interface SaleStatusApiResponse {
-  status: "upcoming" | "active" | "ended";
-  startDate: string;
-  endDate: string;
-  availableStock: number;
-  totalStock: number;
-  limitPerUser: number;
-  price: number;
-  currency: string;
-  name: string;
-  description: string | null;
-  imageUrl: string | null;
-  sku: string;
-}
-
 /** GET /api/v1/products/:sku/sale-status - returns sale status (server-cached). Throws ApiError on 404. */
-export async function getSaleStatus(sku: string): Promise<SaleStatusApiResponse> {
-  const body = await request<SaleStatusApiResponse>(
+export async function getSaleStatus(sku: string): Promise<SaleStatusResponse> {
+  const body = await request<SaleStatusResponse>(
     `/products/${encodeURIComponent(sku)}/sale-status`
   );
   return body.data;
 }
 
 /** POST /api/v1/orders - create order. Throws ApiError on failure (e.g. FLASH_SALE_ENDED, FLASH_SALE_NOT_STARTED, LIMIT_EXCEEDED). */
-export async function createOrder(
-  payload: CreateOrderRequest
-): Promise<Order> {
+export async function createOrder(payload: CreateOrderRequest): Promise<Order> {
   const body = await request<Order>("/orders", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -132,13 +111,10 @@ export async function createOrder(
 
 /** GET /api/v1/orders/:productSKU - returns order or null when 404 (user has no order for this product). */
 export async function getOrder(productSKU: string): Promise<Order | null> {
-  const res = await fetch(
-    `${API_BASE}${API_PREFIX}/orders/${encodeURIComponent(productSKU)}`,
-    {
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+  const res = await fetch(`${API_BASE}${API_PREFIX}/orders/${encodeURIComponent(productSKU)}`, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+  });
   const body = await res.json();
 
   if (res.status === 404 || body.status === "error") {

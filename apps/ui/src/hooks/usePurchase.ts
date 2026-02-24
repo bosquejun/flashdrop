@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { PurchaseResponse } from "../types/legacySchemas";
 
 export function usePurchase() {
@@ -11,14 +11,17 @@ export function usePurchase() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL ?? "http://localhost:3001"}/api/sale/purchase`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, sku }),
-      });
-      
-      const data = await res.json() as PurchaseResponse;
-      
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL ?? "http://127.0.0.1:4000"}/api/sale/purchase`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, sku }),
+        }
+      );
+
+      const data = (await res.json()) as PurchaseResponse;
+
       if (!res.ok) {
         // Only set error, result will contain the error message
         setError(data.message || "Purchase failed");
@@ -29,7 +32,10 @@ export function usePurchase() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Purchase failed");
-      setResult({ success: false, message: err instanceof Error ? err.message : "Purchase failed" });
+      setResult({
+        success: false,
+        message: err instanceof Error ? err.message : "Purchase failed",
+      });
     } finally {
       setLoading(false);
     }
