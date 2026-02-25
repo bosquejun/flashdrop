@@ -23,6 +23,8 @@ CMD ["pnpm", "dev"]
 
 # --- STAGE 4: Build ---
 FROM deps AS builder
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 COPY packages/ui/ packages/ui/
 COPY packages/schema/ packages/schema/
 COPY apps/frontend/ apps/frontend/

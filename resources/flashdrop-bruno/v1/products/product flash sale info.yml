@@ -5,7 +5,11 @@ info:
 
 http:
   method: GET
-  url: "{{versioned_url}}/products"
+  url: "{{versioned_url}}/products/:sku/sale-status"
+  params:
+    - name: sku
+      value: IPHONE-17-PRO-MAX-256-BLK
+      type: path
   auth: inherit
 
 settings:

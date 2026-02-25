@@ -14,7 +14,9 @@ interface SuccessBody<T> {
   timestamp: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
+// In development we talk to Vite's dev server, which proxies /api → backend.
+// In production (built frontend) we must use the full API base URL from VITE_API_URL.
+const API_BASE = import.meta.env.DEV ? "/api" : import.meta.env.VITE_API_URL;
 const API_PREFIX = "/api/v1";
 
 export class ApiError extends Error {

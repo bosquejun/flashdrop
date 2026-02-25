@@ -1,51 +1,24 @@
-import { useCallback, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiFetch } from "../lib/api";
 import type { PurchaseResponse } from "../types/api";
 
+export interface PurchaseVariables {
+  userId: string;
+  sku: string;
+}
+
+/**
+ * Legacy purchase mutation using POST /api/sale/purchase.
+ * Uses shared API_BASE logic from lib/api via apiFetch so dev/prod envs are consistent.
+ */
 export function usePurchase() {
-  const [result, setResult] = useState<PurchaseResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const purchase = useCallback(async (userId: string, sku: string) => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL ?? "http://127.0.0.1:4000"}/api/sale/purchase`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, sku }),
-        }
-      );
-
-      const data = (await res.json()) as PurchaseResponse;
-
-      if (!res.ok) {
-        // Only set error, result will contain the error message
-        setError(data.message || "Purchase failed");
-        setResult(data);
-      } else {
-        setResult(data);
-        setError(null); // Clear any previous errors on success
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Purchase failed");
-      setResult({
-        success: false,
-        message: err instanceof Error ? err.message : "Purchase failed",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const reset = useCallback(() => {
-    setResult(null);
-    setError(null);
-  }, []);
-
-  return { result, loading, error, purchase, reset };
+  return useMutation<PurchaseResponse, unknown, PurchaseVariables>({
+    mutationFn: async ({ userId, sku }) =>
+      apiFetch<PurchaseResponse>("/api/sale/purchase", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, sku }),
+      }),
+  });
 }

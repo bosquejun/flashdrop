@@ -10,7 +10,7 @@ const logger = createLogger("products-seed");
 type ProductSeed = Omit<Product, "_id" | "createdAt">;
 
 const dateNow = new Date();
-const startDate = new Date(dateNow.setMinutes(dateNow.getMinutes() + 1));
+const startDate = new Date(dateNow.setMinutes(dateNow.getMinutes() + 0));
 const endDate = new Date(dateNow.setDate(dateNow.getDate() + 1));
 
 export const PRODUCTS: ProductSeed[] = [
@@ -20,7 +20,7 @@ export const PRODUCTS: ProductSeed[] = [
     description:
       "The all-new iPhone 17 Pro Max with A19 Pro chip, 48MP fusion camera, and titanium design. 256GB — Black Titanium.",
     price: 99999,
-    availableStock: 10000,
+    availableStock: 100000,
     totalStock: 10000,
     currency: "USD",
     imageUrl:

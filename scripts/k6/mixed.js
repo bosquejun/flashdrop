@@ -43,34 +43,23 @@ export default function () {
     "sale-status status is 200": (r) => r.status === 200,
   });
 
-  let status = null;
-  try {
-    const body = JSON.parse(statusRes.body);
-    status = body.data?.status;
-  } catch (_) {}
+  const orderUrl = `${BASE_URL}/api/v1/orders`;
+  const payload = JSON.stringify({
+    productSKU: SKU,
+    quantity: 1,
+  });
+  const userId = `stress-mixed-vu-${__VU}-iter-${__ITER}`;
+  const orderRes = http.post(orderUrl, payload, {
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: `flashdrop-user-id=${userId}`,
+    },
+  });
 
-  if (status === "active") {
-    const orderUrl = `${BASE_URL}/api/v1/orders`;
-    const payload = JSON.stringify({
-      productSKU: SKU,
-      quantity: 1,
-    });
-    const userId = `stress-mixed-vu-${__VU}-iter-${__ITER}`;
-    const orderRes = http.post(orderUrl, payload, {
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `flashdrop-user-id=${userId}`,
-      },
-    });
-
-    check(orderRes, {
-      "order status is 201 or expected 4xx": (r) =>
-        r.status === 201 ||
-        r.status === 400 ||
-        r.status === 403 ||
-        r.status === 409,
-    });
-  }
+  check(orderRes, {
+    "order status is 201 or expected 4xx": (r) =>
+      r.status === 201 || r.status === 400 || r.status === 403 || r.status === 409,
+  });
 
   // Realistic think time: 100–800 ms (browse, decide, retry)
   sleep(Math.random() * 0.7 + 0.1);

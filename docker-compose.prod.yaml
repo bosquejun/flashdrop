@@ -51,14 +51,14 @@ services:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
+      args:
+        VITE_API_URL: http://127.0.0.1:4000
       target: runner
     container_name: flashdrop-frontend
     ports:
       - "5173:3000"
     depends_on:
       - api
-    environment:
-      VITE_API_URL: http://api:4000
   prometheus:
     image: prom/prometheus:v2.52.0
     volumes:

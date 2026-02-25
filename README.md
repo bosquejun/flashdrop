@@ -1,6 +1,6 @@
 # Flashdrop
 
-![Flashdrop Demo UI](demo.png)
+![Flashdrop Demo UI](images/ui.png)
 
 
 High-throughput flash sale platform: single product, limited stock, one item per user. Built for the take-home assessment: configurable sale window, strict inventory and one-per-user enforcement, API + simple React frontend, with stress tests and observability.
@@ -195,6 +195,23 @@ Env: `API_URL` (default `http://127.0.0.1:4000`), optional `SKU`. Prerequisites:
 **Expected outcome:** No overselling (successful orders ≤ initial stock). Under load, 409 (out of stock) and 403 (limit exceeded) are expected once stock or per-user limit is exhausted; 400 when the sale window is not active.
 
 k6 details and Docker: [scripts/k6/README.md](scripts/k6/README.md).
+
+
+### Sample Stress Test Results
+
+![Sample stress test result](images/stress-test-result.png)
+
+
+### Metrics Dashboard
+
+#### High-throughput and latency
+![Metric 1](images/metrics-1.png)
+
+#### Redis
+![Metric 2](images/metrics-2.png) 
+
+#### MongoDB and Node perf.
+![Metric 3](images/metrics-3.png) 
 
 ## Documentation
 
