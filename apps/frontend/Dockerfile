@@ -5,25 +5,28 @@ WORKDIR /app
 
 # --- STAGE 2: Dependencies ---
 FROM base AS deps
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc* ./
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml turbo.json .npmrc* ./
 COPY apps/frontend/package.json apps/frontend/
+COPY packages/ui/package.json packages/ui/
 COPY packages/schema/package.json packages/schema/
 COPY packages/typescript-config/ packages/typescript-config/
 RUN pnpm install --frozen-lockfile
 
 # --- STAGE 3: Development ---
 FROM deps AS development
+COPY packages/ui/ packages/ui/
 COPY packages/schema/ packages/schema/
 COPY apps/frontend/ apps/frontend/
-WORKDIR /app/apps/ui
+WORKDIR /app/apps/frontend
 EXPOSE 5173
 CMD ["pnpm", "dev"]
 
 # --- STAGE 4: Build ---
 FROM deps AS builder
+COPY packages/ui/ packages/ui/
 COPY packages/schema/ packages/schema/
 COPY apps/frontend/ apps/frontend/
-RUN pnpm --filter ui build
+RUN pnpm --filter frontend build
 
 # --- STAGE 5: Production runner ---
 FROM node:22-alpine AS runner

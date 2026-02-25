@@ -14,7 +14,7 @@ interface SuccessBody<T> {
   timestamp: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:4000";
+const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 const API_PREFIX = "/api/v1";
 
 export class ApiError extends Error {

@@ -72,7 +72,7 @@ services:
     depends_on:
       - api
     environment:
-      VITE_API_URL: http://api:4000
+      VITE_API_URL: /api
   prometheus:
     image: prom/prometheus:v2.52.0
     ports:

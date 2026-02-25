@@ -1,5 +1,8 @@
 # Flashdrop
 
+![Flashdrop Demo UI](demo.png)
+
+
 High-throughput flash sale platform: single product, limited stock, one item per user. Built for the take-home assessment: configurable sale window, strict inventory and one-per-user enforcement, API + simple React frontend, with stress tests and observability.
 
 ## What's inside
@@ -11,9 +14,42 @@ Monorepo (pnpm + Turborepo):
 - **packages/schema** — Shared Zod schemas and types (Product, Order, SaleStatusResponse, etc.).
 - **packages/logger**, **packages/utils**, **packages/typescript-config** — Shared tooling.
 
+
+## Tech stack
+
+- **Frontend**
+  - **Vite + React** — SPA frontend for the flash sale UI.
+  - **shadcn/ui + Tailwind CSS** — Design system and utility-first styling.
+  - **TanStack Query** — Data fetching, caching, and request state (sale status, orders).
+  - **React Context API** — Lightweight client-side state for user identity/session.
+
+- **Backend**
+  - **Node.js + Fastify** — High-performance HTTP server for the flash sale API.
+  - **Zod** — Runtime validation and shared schemas (via `packages/schema`) across API and UI.
+  - **Redis + Lua** — Atomic stock and per-user limit enforcement; Redis as source of truth during the sale.
+  - **Redis Streams** — Async, non-critical flows like stock reconciliation.
+  - **MongoDB** — Durable storage for products and orders.
+
+- **Monitoring & metrics**
+  - **Prometheus** — Scrapes API metrics from `/metrics`.
+  - **Grafana** — Dashboards for throughput, latency, errors, rate limits, and stock gauges.
+
+- **Stress testing**
+  - **Autocannon** — Quick HTTP benchmarks for core endpoints.
+  - **k6** — Scenario-based load tests (sale status, create order, mixed flows) with thresholds.
+
+
+## Assumptions
+
+- **Single product** — One flash sale product (by SKU) at a time; stock and limits are per product.
+- **User identity** — A user identifier (e.g. username or anonymous id) is supplied via the UI or API and stored in a cookie/session; no full authentication service.
+- **Sale window** — Start and end times are configured on the product; the system rejects purchases outside that window.
+- **Local or self-hosted infra** — MongoDB and Redis are run locally or in Docker; Production-ready deployment configuration is available via docker swarm config. (docker-stack.yml)
+
+
 ## Design choices and trade-offs
 
-- **Redis + Lua** for atomic stock decrement and per-user limit (no oversell, one per user).
+- **Redis + Lua** for atomic stock decrement and per-user limit (no oversell, one per user); works across horizontally scaled API instances (shared Redis).
 - **Node cluster** for throughput (multiple API workers).
 - **Cookie/session** for user identity (after login or anonymous id).
 - **Sale-status endpoint** cached in Redis with short TTL for freshness without hitting DB every poll.
@@ -21,6 +57,13 @@ Monorepo (pnpm + Turborepo):
 - **Optional global rate limiter** (off by default for stress testing).
 
 Full rationale, fairness vs simplicity, and Redis Streams for async reconciliation: [docs/system-design.md](docs/system-design.md).
+
+## Out of scope
+
+- **Auth service and full auth features** — No OAuth, SSO, password reset, or user registration; identity is a simple identifier for “one per user” enforcement.
+- **Checkout and payments** — No cart, checkout flow, or payment gateway (e.g. Stripe); a successful “order” is a reserved/purchased unit, not a paid transaction.
+- **Multi-product or catalog** — Focus is a single product flash sale; product listing and search are minimal or omitted.
+- **Email/notifications** — No order confirmation emails or push notifications.
 
 ## System diagram
 
@@ -51,6 +94,7 @@ Details: [docs/system-design.md](docs/system-design.md).
 
 - Node ≥18
 - pnpm
+- Docker
 - MongoDB and Redis (local or Docker)
 
 ## Build and run
@@ -95,12 +139,17 @@ docker compose up
 
 Check `docker-compose.yaml` for service ports and env.
 
-**Reviewer / assessment: production build and Swarm deploy**
+**Production build and Swarm deploy**
 
 To produce a production-ready build and run the stack under Docker Swarm in one go (e.g. for take-home evaluation), use the run-production script. From repo root:
 
 ```bash
 ./scripts/run-production.sh [--api-replicas N] [--run-k6]
+```
+
+e.g
+```bash
+./scripts/run-production.sh --run-k6
 ```
 
 On Windows use PowerShell: `.\scripts\run-production.ps1 [-ApiReplicas N] [-RunK6]`. See [scripts/README.md](scripts/README.md) for options and prerequisites.
