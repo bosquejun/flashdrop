@@ -24,7 +24,7 @@ export const PRODUCTS: ProductSeed[] = [
     totalStock: 10000,
     currency: "USD",
     imageUrl:
-      "https://citymagazine.b-cdn.net/wp-content/uploads/2025/09/iPhone-17-Pro-Max-2025-02-1400x788.webp",
+      "https://www.apple.com/newsroom/images/2025/09/apple-unveils-iphone-17-pro-and-iphone-17-pro-max/article/Apple-iPhone-17-Pro-cosmic-orange-250909_inline.jpg.large.jpg",
     startDate: startDate,
     endDate: endDate,
     limit: {

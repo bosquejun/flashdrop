@@ -1,7 +1,7 @@
 import { createEventsStream } from "@/lib/events-stream.js";
 import { createLogger } from "@repo/logger";
 import type { Order } from "@repo/schema";
-import { decrementProductStock } from "../products/service.js";
+import { reconcileProductStock } from "../products/service.js";
 
 const logger = createLogger("products-subscribers");
 
@@ -21,16 +21,27 @@ export const orderEventsStream = createEventsStream<OrderEvents>("order", "order
  */
 export default async function initOrderSubscribers() {
   // subscribe to the order completed event
-  orderEventsStream.on("completed", async (order) => {
-    logger.info({ orderId: order._id }, "Order completed. Updating product stock");
-
-    // update the product stock on database
-    await decrementProductStock(order.productSKU, order.quantity);
-
-    logger.debug(
-      { orderId: order._id, productSKU: order.productSKU, quantity: order.quantity },
-      "Product stock updated"
+  orderEventsStream.on("completed", async (batch) => {
+    if (batch.length === 0) return;
+    logger.info(
+      { count: batch.length, orderIds: batch.map(({ payload }) => payload._id) },
+      "Orders completed. Reconciling products stocks"
     );
+    // aggregate the quantity per product to reconcile
+    const aggregatedProduct = batch.reduce(
+      (acc, { payload }) => {
+        acc[payload.productSKU] = (acc[payload.productSKU] ?? 0) + (payload.quantity ?? 1);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
+    // reconcile the stock for each product
+    for (const [sku, quantity] of Object.entries(aggregatedProduct)) {
+      await reconcileProductStock(sku, -quantity);
+    }
+
+    logger.debug("Product stock reconciled for batch");
   });
 
   // listen to the order-completion stream

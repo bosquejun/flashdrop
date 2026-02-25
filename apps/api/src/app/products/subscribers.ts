@@ -24,37 +24,35 @@ const productEventsStream = createEventsStream<ProductEvents, { userId?: string 
  */
 export default async function initProductSubscribers() {
   // subscribe to the product created event
-  productEventsStream.on("created", async (product) => {
+  productEventsStream.on("created", async (batch) => {
     const redis = getRedis();
+    if (batch.length === 0) return;
     logger.info(
-      { id: product._id, sku: product.sku },
-      "Product created. Invalidating product list cache"
+      { count: batch.length, ids: batch.map(({ payload }) => payload._id) },
+      "Products created. Invalidating product list cache"
     );
-
     await redis.del(getProductsListKey({}));
-
     logger.debug("Product list cache invalidated");
   });
 
   // subscribe to the product updated event
-  productEventsStream.on("updated", async (product) => {
+  productEventsStream.on("updated", async (batch) => {
     const redis = getRedis();
+    if (batch.length === 0) return;
     await redis.del(getProductsListKey({}));
-
-    if (product.sku) {
-      await redis.del(getProductKey(product.sku));
+    for (const { payload } of batch) {
+      if (payload.sku) await redis.del(getProductKey(payload.sku));
     }
-
     logger.debug("Product list cache invalidated");
   });
 
   // subscribe to the product deleted event
-  productEventsStream.on("deleted", async (product) => {
+  productEventsStream.on("deleted", async (batch) => {
     const redis = getRedis();
+    if (batch.length === 0) return;
     await redis.del(getProductsListKey({}));
-
-    if (product.sku) {
-      await redis.del(getProductKey(product.sku));
+    for (const { payload } of batch) {
+      if (payload.sku) await redis.del(getProductKey(payload.sku));
     }
   });
 

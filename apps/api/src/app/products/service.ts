@@ -178,14 +178,25 @@ export async function getProductSaleStatus(sku: string): Promise<SaleStatusRespo
   return dto;
 }
 
-export async function decrementProductStock(sku: string, quantityToDecrement: number) {
+// export async function decrementProductStock(sku: string, quantityToDecrement: number) {
+//   const product = await getProduct(sku);
+//   if (!product) {
+//     throw new AppError(400, "Product not found", "PRODUCT_NOT_FOUND");
+//   }
+//   product.availableStock -= quantityToDecrement;
+//   await (await productsCollection()).updateOne(
+//     { sku },
+//     { $inc: { availableStock: -quantityToDecrement } }
+//   );
+// }
+
+export async function reconcileProductStock(sku: string, quantityToReconcile: number) {
   const product = await getProduct(sku);
   if (!product) {
     throw new AppError(400, "Product not found", "PRODUCT_NOT_FOUND");
   }
-  product.availableStock -= quantityToDecrement;
   await (await productsCollection()).updateOne(
     { sku },
-    { $inc: { availableStock: -quantityToDecrement } }
+    { $inc: { availableStock: quantityToReconcile } }
   );
 }

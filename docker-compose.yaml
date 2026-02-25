@@ -57,17 +57,17 @@ services:
       LOG_LEVEL: debug
       WORKERS: 1
       SERVICE_INSTANCE_NAME: "{{.Service.Name}}.{{.Task.Slot}}"
-  ui:
-    image: flashdrop/ui:latest
+  frontend:
+    image: flashdrop/frontend:latest
     build:
       context: .
-      dockerfile: apps/ui/Dockerfile
+      dockerfile: apps/frontend/Dockerfile
       target: development
-    container_name: flashdrop-ui
+    container_name: flashdrop-frontend
     ports:
       - "5173:5173"
     volumes:
-      - ./apps/ui/src:/app/apps/ui/src
+      - ./apps/frontend/src:/app/apps/frontend/src
       - ./packages/schema/src:/app/packages/schema/src
     depends_on:
       - api

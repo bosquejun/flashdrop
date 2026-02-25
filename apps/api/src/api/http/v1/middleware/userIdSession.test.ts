@@ -4,6 +4,7 @@ import {
   getUserId,
   getUserIdFromHeaders,
   getUserIdFromRequest,
+  hashUserId,
 } from "./userIdSession.js";
 
 describe("userIdSession", () => {
@@ -67,6 +68,21 @@ describe("userIdSession", () => {
           message: "Unauthorized",
         })
       );
+    });
+  });
+
+  describe("hashUserId", () => {
+    it("returns 32-char hex string", () => {
+      const id = hashUserId("user@example.com");
+      expect(id).toMatch(/^[a-f0-9]{32}$/);
+      expect(id).toHaveLength(32);
+    });
+    it("is deterministic for same input", () => {
+      expect(hashUserId("alice")).toBe(hashUserId("alice"));
+      expect(hashUserId("Bob")).toBe(hashUserId("bob"));
+    });
+    it("normalizes to lowercase and trim", () => {
+      expect(hashUserId("  Alice  ")).toBe(hashUserId("alice"));
     });
   });
 });
