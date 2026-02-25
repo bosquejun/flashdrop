@@ -4,16 +4,32 @@ import http from "k6/http";
 const BASE_URL = __ENV.API_URL || __ENV.BASE_URL || "http://127.0.0.1:4000";
 const SKU = __ENV.SKU || "IPHONE-17-PRO-MAX-256-BLK";
 
+/**
+ * ~10 min real-life flash sale simulation:
+ * - Ramp up: anticipation (browsing, checking status)
+ * - Spike: sale goes live (traffic surge)
+ * - Peak: sustained frenzy (high concurrency)
+ * - Ramp down: stock depleting, traffic tapers
+ * - Cool down: traffic winds down to zero
+ */
 export const options = {
   stages: [
-    { duration: "30s", target: 20 },
-    { duration: "1m", target: 40 },
-    { duration: "1m", target: 40 },
-    { duration: "30s", target: 0 },
+    // Ramp up — pre-sale: people waiting, checking if sale started (1 min)
+    { duration: "1m", target: 150 },
+    // Spike — sale just went live: sharp increase (1 min)
+    { duration: "1m", target: 600 },
+    // Peak — sustained high load, retries + new users (3 min)
+    { duration: "3m", target: 900 },
+    // Ramp down — stock running out, some users leave (2 min)
+    { duration: "2m", target: 400 },
+    // Late phase — mostly status checks, last orders (2 min)
+    { duration: "2m", target: 150 },
+    // Cool down — traffic winds down (1 min)
+    { duration: "1m", target: 0 },
   ],
   thresholds: {
-    http_req_duration: ["p(95)<2000"],
-    http_req_failed: ["rate<1"],
+    http_req_duration: ["p(95)<3000", "p(99)<5000"],
+    http_req_failed: ["rate<0.05"],
   },
 };
 
@@ -49,9 +65,13 @@ export default function () {
 
     check(orderRes, {
       "order status is 201 or expected 4xx": (r) =>
-        r.status === 201 || r.status === 400 || r.status === 403 || r.status === 409,
+        r.status === 201 ||
+        r.status === 400 ||
+        r.status === 403 ||
+        r.status === 409,
     });
   }
 
-  sleep(0.2);
+  // Realistic think time: 100–800 ms (browse, decide, retry)
+  sleep(Math.random() * 0.7 + 0.1);
 }

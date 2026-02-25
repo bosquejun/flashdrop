@@ -17,7 +17,7 @@ COPY packages/schema/ packages/schema/
 COPY apps/frontend/ apps/frontend/
 WORKDIR /app/apps/ui
 EXPOSE 5173
-CMD ["pnpm", "dev", "--host"]
+CMD ["pnpm", "dev"]
 
 # --- STAGE 4: Build ---
 FROM deps AS builder

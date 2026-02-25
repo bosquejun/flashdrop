@@ -12,4 +12,10 @@ export default defineConfig({
       "@repo/ui/*": path.resolve(__dirname, "../../packages/ui/src"),
     },
   },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+  },
 });
