@@ -213,6 +213,10 @@ k6 details and Docker: [scripts/k6/README.md](scripts/k6/README.md).
 #### MongoDB and Node perf.
 ![Metric 3](images/metrics-3.png) 
 
+
+### View ore detailed stress tests results: [stress-test-result](docs/stress-test.md)
+
+
 ## Documentation
 
 - [System design](docs/system-design.md) — Architecture, flows, fairness vs queue/reservation, Redis Streams, concurrency, scalability, fault tolerance, configuration.
@@ -231,3 +235,4 @@ The API exposes **Prometheus** metrics at `GET /metrics`. With Docker Compose, *
 Details (credentials, metrics list, multi-replica identity, rate limiter, production): [docs/monitoring.md](docs/monitoring.md).
 
 For multi-replica deployment (e.g. Docker Swarm), use `docker-stack.yml` and ensure Prometheus and Grafana are configured for your environment; see [docs/monitoring.md](docs/monitoring.md) and `prometheus/prometheus.yml` for scrape config.
+
